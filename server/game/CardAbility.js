@@ -2,59 +2,10 @@ const AbilityLimit = require('./abilitylimit.js');
 const AbilityDsl = require('./abilitydsl');
 const ThenAbility = require('./ThenAbility');
 const Costs = require('./costs.js');
-const { Locations, CardTypes, EffectNames, Players } = require('./Constants');
+const { Locations, CardTypes, EffectNames} = require('./Constants');
 
 class CardAbility extends ThenAbility {
     constructor(game, card, properties) {
-        if(properties.initiateDuel) {
-            if(card.type === CardTypes.Character) {
-                let prevCondition = properties.condition;
-                properties.condition = context => context.source.isParticipating() && (!prevCondition || prevCondition(context));
-                properties.target = {
-                    cardType: CardTypes.Character,
-                    player: context => {
-                        if(typeof properties.initiateDuel === 'function') {
-                            return properties.initiateDuel(context).opponentChoosesDuelTarget ? Players.Opponent : Players.Self;
-                        }
-                        return properties.initiateDuel.opponentChoosesDuelTarget ? Players.Opponent : Players.Self;
-                    },
-                    controller: Players.Opponent,
-                    cardCondition: card => card.isParticipating(),
-                    gameAction: AbilityDsl.actions.duel(context => {
-                        if(typeof properties.initiateDuel === 'function') {
-                            return Object.assign({ challenger: context.source }, properties.initiateDuel(context));
-                        }
-                        return Object.assign({ challenger: context.source }, properties.initiateDuel);
-                    })
-                };
-            } else {
-                properties.targets = {
-                    challenger: {
-                        cardType: CardTypes.Character,
-                        controller: Players.Self,
-                        cardCondition: card => card.isParticipating()
-                    },
-                    duelTarget: {
-                        dependsOn: 'challenger',
-                        cardType: CardTypes.Character,
-                        player: context => {
-                            if(typeof properties.initiateDuel === 'function') {
-                                return properties.initiateDuel(context).opponentChoosesDuelTarget ? Players.Opponent : Players.Self;
-                            }
-                            return properties.initiateDuel.opponentChoosesDuelTarget ? Players.Opponent : Players.Self;
-                        },
-                        controller: Players.Opponent,
-                        cardCondition: card => card.isParticipating(),
-                        gameAction: AbilityDsl.actions.duel(context => {
-                            if(typeof properties.initiateDuel === 'function') {
-                                return Object.assign({ challenger: context.targets.challenger }, properties.initiateDuel(context));
-                            }
-                            return Object.assign({ challenger: context.targets.challenger }, properties.initiateDuel);
-                        })
-                    }
-                };
-            }
-        }
         super(game, card, properties);
 
         this.title = properties.title;
@@ -87,10 +38,8 @@ class CardAbility extends ThenAbility {
     buildLocation(card, location) {
         const DefaultLocationForType = {
             event: Locations.Hand,
-            holding: Locations.Provinces,
-            province: Locations.Provinces,
-            role: Locations.Role,
-            stronghold: Locations.StrongholdProvince
+            province: Locations.Mission,
+            stronghold: Locations.Homeworld
         };
 
         let defaultedLocation = location || DefaultLocationForType[card.getType()] || Locations.PlayArea;
@@ -99,9 +48,9 @@ class CardAbility extends ThenAbility {
             defaultedLocation = [defaultedLocation];
         }
 
-        if(defaultedLocation.some(location => location === Locations.Provinces)) {
-            defaultedLocation = defaultedLocation.filter(location => location !== Locations.Provinces);
-            defaultedLocation = defaultedLocation.concat([Locations.ProvinceOne, Locations.ProvinceTwo, Locations.ProvinceThree, Locations.ProvinceFour, Locations.StrongholdProvince]);
+        if(defaultedLocation.some(location => location === Locations.Mission)) {
+            defaultedLocation = defaultedLocation.filter(location => location !== Locations.Mission);
+            defaultedLocation = defaultedLocation.concat([Locations.MissionOne, Locations.MissionTwo, Locations.MissionThree, Locations.MissionFour, Locations.Homeworld]);
         }
 
         return defaultedLocation;
