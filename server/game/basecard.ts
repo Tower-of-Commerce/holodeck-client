@@ -51,10 +51,10 @@ class BaseCard extends EffectSource {
     printedFaction: string;
     location: Locations;
 
-    isProvince: boolean = false;
-    isConflict: boolean = false;
-    isDynasty: boolean = false;
-    isStronghold: boolean = false;
+    isMission: boolean = false;
+    isExecute: boolean = false;
+    isPlayAndDraw: boolean = false;
+    isHomeworld: boolean = false;
 
     constructor(owner, cardData) {
         super(owner.game);
@@ -67,8 +67,6 @@ class BaseCard extends EffectSource {
         this.printedType = cardData.type;
         this.traits = cardData.traits || [];
         this.printedFaction = cardData.clan;
-        this.attachments = _([]);
-        this.childCards = [];
 
         this.setupCardAbilities(AbilityDsl);
         this.applyAttachmentBonus();

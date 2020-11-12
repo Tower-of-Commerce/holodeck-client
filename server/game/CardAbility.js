@@ -38,7 +38,7 @@ class CardAbility extends ThenAbility {
     buildLocation(card, location) {
         const DefaultLocationForType = {
             event: Locations.Hand,
-            province: Locations.Mission,
+            mission: Locations.Mission,
             stronghold: Locations.Homeworld
         };
 
