@@ -1,6 +1,5 @@
 const _ = require('underscore');
 const GameActions = require('./GameActions/GameActions');
-const HonorBidPrompt = require('./gamesteps/honorbidprompt.js');
 const { Locations, CardTypes, Players } = require('./Constants');
 
 class ChatCommands {
@@ -8,12 +7,10 @@ class ChatCommands {
         this.game = game;
         this.commands = {
             '/draw': this.draw,
-            '/honor': this.honor,
-            '/dishonor': this.dishonor,
+            '/stop': this.stop,
             '/discard': this.discard,
             '/token': this.setToken,
             '/reveal': this.reveal,
-            '/duel': this.duel,
             '/move-to-conflict': this.moveToConflict,
             '/move-to-bottom-deck': this.moveCardToDeckBottom,
             '/send-home': this.sendHome,
@@ -21,10 +18,6 @@ class ChatCommands {
             '/discard-favor': this.discardFavor,
             '/add-fate': this.addFate,
             '/rem-fate': this.remFate,
-            '/add-fate-ring': this.addRingFate,
-            '/rem-fate-ring': this.remRingFate,
-            '/claim-ring' : this.claimRing,
-            '/unclaim-ring': this.unclaimRing,
             '/stop-clocks': this.stopClocks,
             '/start-clocks': this.startClocks,
             '/modify-clock': this.modifyClock,
@@ -33,7 +26,7 @@ class ChatCommands {
             '/manual': this.manual
         };
         this.tokens = [
-            'fate'
+            'credits'
         ];
     }
 
@@ -76,55 +69,6 @@ class ChatCommands {
         player.drawCardsToHand(num);
     }
 
-    claimFavor(player, args) {
-        let type = args[1] || 'military';
-        this.game.addMessage('{0} uses /claim-favor to claim the emperor\'s {1} favor', player, type);
-        player.claimImperialFavor(type);
-        let otherPlayer = this.game.getOtherPlayer(player);
-        if(otherPlayer) {
-            otherPlayer.loseImperialFavor();
-        }
-    }
-
-    discardFavor(player) {
-        this.game.addMessage('{0} uses /discard-favor to discard the imperial favor', player);
-        player.loseImperialFavor();
-    }
-
-    honor(player) {
-        this.game.promptForSelect(player, {
-            activePromptTitle: 'Select a card to honor',
-            waitingPromptTitle: 'Waiting for opponent to honor',
-            cardCondition: card => card.location === Locations.PlayArea && card.controller === player,
-            onSelect: (p, card) => {
-                //honor card
-                card.honor();
-
-                this.game.addMessage('{0} uses the /honor command to honor {1}', p, card);
-                return true;
-            }
-        });
-    }
-
-    dishonor(player) {
-        this.game.promptForSelect(player, {
-            activePromptTitle: 'Select a card to dishonor',
-            waitingPromptTitle: 'Waiting for opponent to dishonor',
-            cardCondition: card => card.location === Locations.PlayArea && card.controller === player,
-            onSelect: (p, card) => {
-                //dishonor card
-                card.dishonor();
-
-                this.game.addMessage('{0} uses the /dishonor command to dishonor {1}', p, card);
-                return true;
-            }
-        });
-    }
-
-    duel(player) {
-        this.game.addMessage('{0} initiates a duel', player);
-        this.game.queueStep(new HonorBidPrompt(this.game, 'Choose your bid for the duel'));
-    }
 
     moveToConflict(player) {
         if(this.game.currentConflict) {
@@ -150,25 +94,6 @@ class ChatCommands {
         }
     }
 
-    sendHome(player) {
-        if(this.game.currentConflict) {
-            this.game.promptForSelect(player, {
-                activePromptTitle: 'Select a card to send home',
-                waitingPromptTitle: 'Waiting for opponent to send home',
-                cardCondition: card => card.location === Locations.PlayArea && card.controller === player && card.inConflict,
-                cardType: CardTypes.Character,
-                onSelect: (p, card) => {
-                    //send home card
-                    this.game.currentConflict.removeFromConflict(card);
-
-                    this.game.addMessage('{0} uses the /send-home command to send {1} home', p, card);
-                    return true;
-                }
-            });
-        } else {
-            this.game.addMessage('/move-to-conflict can only be used during a conflict');
-        }
-    }
 
     discard(player, args) {
         var num = this.getNumberOrDefault(args[1], 1);
@@ -263,92 +188,8 @@ class ChatCommands {
         });
     }
 
-    addRingFate(player, args) {
-        let ringElement = (args[1]);
-        let num = this.getNumberOrDefault(args[2], 1);
 
-        if(_.contains(['air','earth','fire','void','water'], ringElement)) {
-            let ring = this.game.rings[ringElement];
 
-            ring.modifyFate(num);
-            this.game.addMessage('{0} uses the /add-fate-ring command to set the fate count of the ring of {1} to {2}', player, ringElement, ring.getFate());
-        } else {
-            this.game.promptForRingSelect(player, {
-                onSelect: (player, ring) => {
-                    ring.modifyFate(num);
-                    this.game.addMessage('{0} uses the /add-fate-ring command to set the fate count of the ring of {1} to {2}', player, ring.element, ring.getFate());
-                    return true;
-                }
-            });
-        }
-
-        return true;
-    }
-
-    remRingFate(player, args) {
-        let ringElement = (args[1]);
-        let num = this.getNumberOrDefault(args[2], 1);
-
-        if(_.contains(['air','earth','fire','void','water'], ringElement)) {
-            let ring = this.game.rings[ringElement];
-
-            ring.modifyFate(-num);
-            this.game.addMessage('{0} uses the /rem-fate-ring command to set the fate count of the ring of {1} to {2}', player, ringElement, ring.getFate());
-        } else {
-            this.game.promptForRingSelect(player, {
-                onSelect: (player, ring) => {
-                    ring.modifyFate(-num);
-                    this.game.addMessage('{0} uses the /rem-fate-ring command to set the fate count of the ring of {1} to {2}', player, ring.element, ring.getFate());
-                    return true;
-                }
-            });
-        }
-
-        return true;
-    }
-
-    claimRing(player, args) {
-        let ringElement = (args[1]);
-
-        if(_.contains(['air','earth','fire','void','water'], ringElement)) {
-            let ring = this.game.rings[ringElement];
-
-            ring.claimRing(player);
-            this.game.addMessage('{0} uses the /claim-ring command to claim the ring of {1}', player, ringElement);
-        } else {
-            this.game.promptForRingSelect(player, {
-                onSelect: (player, ring) => {
-                    ring.claimRing(player);
-                    this.game.addMessage('{0} uses the /claim-ring command to claim the ring of {1}', player, ring.element);
-                    return true;
-                }
-            });
-        }
-
-        return true;
-    }
-
-    unclaimRing(player, args) {
-        let ringElement = (args[1]);
-
-        if(_.contains(['air','earth','fire','void','water'], ringElement)) {
-            let ring = this.game.rings[ringElement];
-
-            ring.resetRing();
-            this.game.addMessage('{0} uses the /unclaim-ring command to set the ring of {1} as unclaimed', player, ringElement);
-        } else {
-            this.game.promptForRingSelect(player, {
-                ringCondition: ring => ring.claimed,
-                onSelect: (player, ring) => {
-                    ring.resetRing();
-                    this.game.addMessage('{0} uses the /unclaim-ring command to set the ring of {1} as unclaimed', player, ring.element);
-                    return true;
-                }
-            });
-        }
-
-        return true;
-    }
 
     disconnectMe(player) {
         player.socket.disconnect();

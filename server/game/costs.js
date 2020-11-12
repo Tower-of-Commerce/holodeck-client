@@ -15,7 +15,7 @@ const Costs = {
     /**
      * Cost that will bow the card that initiated the ability.
      */
-    bowSelf: () => new GameActionCost(GameActions.bow()),
+    stopSelf: () => new GameActionCost(GameActions.bow()),
     /**
      * Cost that will bow the card that the card that initiated the ability is attached to.
      */
